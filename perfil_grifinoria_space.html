@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>xat.me/Sih • Gryffindor Space</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@500;600;700&family=Great+Vibes&family=Poppins:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        xat: {
+                            dark: '#080103',
+                            cardBg: '#160408',
+                            bannerRed: '#4a0e17',
+                            scarlet: '#740001',
+                            gold: '#D3A625',
+                            lightGold: '#EEBA30',
+                            glowGold: '#ffd700'
+                        }
+                    },
+                    fontFamily: {
+                        cinzel: ['Cinzel', 'serif'],
+                        decorative: ['Cinzel Decorative', 'cursive'],
+                        script: ['Great Vibes', 'cursive'],
+                        poppins: ['Poppins', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background: radial-gradient(circle at top center, #2e070e 0%, #120205 60%, #050001 100%);
+            color: #f3e5d8;
+            font-family: 'Poppins', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Canvas Background & Mouse Wand Trail */
+        #magicCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Card Glassmorphism Estilo xat.me */
+        .xat-card {
+            background: rgba(22, 4, 8, 0.82);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(211, 166, 37, 0.25);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.85),
+                        inset 0 0 20px rgba(211, 166, 37, 0.05);
+        }
+
+        /* Banner de fundo */
+        .xat-banner {
+            background: linear-gradient(135deg, rgba(116, 0, 1, 0.85) 0%, rgba(74, 14, 23, 0.9) 45%, rgba(18, 2, 5, 0.95) 100%),
+                        url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1200&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* Brilhos */
+        .gold-glow-text {
+            text-shadow: 0 0 10px rgba(238, 186, 48, 0.5), 0 0 20px rgba(211, 166, 37, 0.3);
+        }
+
+        .avatar-frame {
+            box-shadow: 0 0 25px rgba(238, 186, 48, 0.45), inset 0 0 15px rgba(116, 0, 1, 0.8);
+            border: 2px solid #EEBA30;
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        .avatar-frame:hover {
+            box-shadow: 0 0 35px rgba(238, 186, 48, 0.85), inset 0 0 20px rgba(238, 186, 48, 0.5);
+            transform: scale(1.03);
+        }
+
+        /* Range Slider do Player */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            height: 5px;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: #EEBA30;
+            cursor: pointer;
+            box-shadow: 0 0 10px #EEBA30;
+            transition: transform 0.2s;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.3);
+        }
+
+        /* Animação do Leão */
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.25; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.06); }
+        }
+
+        .magic-pulse {
+            animation: pulse-glow 4s infinite ease-in-out;
+        }
+
+        /* Scrollbar customizada */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #080103;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #740001;
+            border-radius: 4px;
+            border: 1px solid #D3A625;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center p-2 sm:p-4 md:p-6 min-h-screen relative select-none">
+
+    <!-- Canvas para estrelas e rastro mágico de varinha -->
+    <canvas id="magicCanvas"></canvas>
+
+    <!-- Notificação Discreta de Ativação do Áudio (Sutil, nada cafona) -->
+    <div id="audioUnlockTip" class="fixed top-4 right-4 z-50 pointer-events-none transition-all duration-700 opacity-100 transform translate-y-0">
+        <div class="bg-black/75 backdrop-blur-md border border-xat-gold/40 px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2.5 text-xs text-amber-200">
+            <i class="fa-solid fa-wand-magic-sparkles text-xat-lightGold animate-pulse"></i>
+            <span>Clique na página para ativar o som mágico</span>
+        </div>
+    </div>
+
+    <!-- PAINEL PRINCIPAL DO XAT SPACE -->
+    <main class="w-full max-w-5xl rounded-3xl overflow-hidden xat-card relative z-10 my-auto border border-xat-gold/35 shadow-2xl">
+        
+        <!-- BARRA SUPERIOR DO XAT.ME -->
+        <div class="bg-black/60 backdrop-blur-md px-4 sm:px-6 py-2.5 border-b border-xat-gold/20 flex items-center justify-between text-xs text-amber-200/80">
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-1.5 font-bold tracking-wider text-xat-lightGold font-cinzel">
+                    <i class="fa-solid fa-planet text-xat-gold text-sm"></i>
+                    <span>xat.me</span>
+                </div>
+                <span class="text-amber-200/30">|</span>
+                <span class="text-[11px] font-mono text-amber-100/70">SIH'S SPACE</span>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <span class="hidden sm:inline-flex items-center gap-1.5 bg-xat-scarlet/40 px-2.5 py-0.5 rounded-full border border-xat-gold/30 text-[10px] text-amber-200">
+                    <i class="fa-solid fa-shield-halved text-xat-lightGold"></i> Gryffindor
+                </span>
+                <i class="fa-solid fa-sparkles text-xat-lightGold text-xs animate-pulse"></i>
+            </div>
+        </div>
+
+        <!-- BANNER DE CABEÇALHO -->
+        <header class="xat-banner relative min-h-[200px] sm:min-h-[250px] p-6 sm:p-10 flex flex-col justify-center overflow-hidden border-b border-xat-gold/30">
+            
+            <!-- Frase Solicitada em Destaque -->
+            <div class="relative z-10 text-right ml-auto max-w-2xl my-auto">
+                <p class="text-xs uppercase tracking-widest text-xat-gold font-cinzel font-semibold mb-2">Hogwarts • Gryffindor</p>
+                <blockquote class="font-cinzel text-lg sm:text-2xl md:text-3xl font-bold text-amber-100 gold-glow-text leading-snug">
+                    "As palavras são, na sua não dispensável fonte, a nossa mais inesgotável fonte de magia."
+                </blockquote>
+                <cite class="block text-xs sm:text-sm text-xat-lightGold font-script italic mt-2 tracking-wide not-italic font-normal">
+                    — Alvo Dumbledore
+                </cite>
+            </div>
+
+            <!-- Ícone de Leão no Fundo -->
+            <i class="fa-solid fa-shield-cat absolute -bottom-10 -left-6 text-9xl text-xat-gold/10 magic-pulse pointer-events-none"></i>
+        </header>
+
+        <!-- CORPO PRINCIPAL DO PERFIL -->
+        <div class="p-4 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative">
+            
+            <!-- CARD DO PERFIL DA SIH (ESQUERDA) -->
+            <section class="lg:col-span-6 flex flex-col gap-5">
+                
+                <!-- Avatar & Badge de Status -->
+                <div class="flex flex-col sm:flex-row items-center sm:items-end gap-5 -mt-16 sm:-mt-20 relative z-20">
+                    <!-- Foto Redonda com Moldura Dourada e Botão de Coração -->
+                    <div class="relative group">
+                        <div class="w-32 h-32 sm:w-36 sm:h-36 rounded-full overflow-hidden avatar-frame bg-xat-bannerRed flex items-center justify-center relative">
+                            <img id="avatarImg" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=500&auto=format&fit=crop" 
+                                 alt="Avatar Sih" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                                 onerror="this.src='https://placehold.co/300x300/740001/EEBA30?text=Sih'">
+                        </div>
+                        <button class="absolute bottom-1 right-1 w-9 h-9 rounded-full bg-gradient-to-tr from-xat-scarlet to-xat-gold border-2 border-xat-dark text-xat-lightGold flex items-center justify-center text-xs shadow-lg hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-heart"></i>
+                        </button>
+                    </div>
+
+                    <!-- Status Pill -->
+                    <div class="mb-2">
+                        <div class="inline-flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-full border border-xat-gold/30 text-xs text-amber-200/90 shadow-md">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span>• Na Sala Comunal da Grifinória</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detalhes da Sih -->
+                <div class="space-y-2.5">
+                    <span class="text-[11px] uppercase tracking-widest text-xat-gold font-cinzel font-semibold">BEM-VINDO AO MEU CANTINHO</span>
+                    
+                    <div class="flex items-center gap-3">
+                        <h2 class="font-cinzel text-3xl sm:text-4xl font-bold text-amber-100 tracking-wide">
+                            Sih
+                        </h2>
+                        <span class="text-xat-lightGold text-xl gold-glow-text" title="Bruxa da Grifinória">
+                            <i class="fa-solid fa-crown"></i>
+                        </span>
+                    </div>
+
+                    <!-- ID xat -->
+                    <div class="flex items-center gap-2 text-xs text-amber-200/70 font-mono">
+                        <span>• Gryffindor (Sih#1007)</span>
+                        <button onclick="copyID()" class="hover:text-xat-lightGold transition-colors" title="Copiar ID">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                        <span id="copyMsg" class="text-[10px] text-emerald-400 opacity-0 transition-opacity">Copiado!</span>
+                    </div>
+
+                    <!-- Bio -->
+                    <p class="text-sm text-amber-100/80 leading-relaxed font-light italic pt-1">
+                        "Coragem na alma, o fogo leal de leão no coração e uma boa música para embalar cada feitiço."
+                    </p>
+                </div>
+
+                <!-- Tags / Pills -->
+                <div class="flex flex-wrap gap-2 pt-1">
+                    <span class="px-3.5 py-1.5 rounded-full bg-xat-scarlet/30 border border-xat-gold/30 text-xs text-amber-200/90 flex items-center gap-1.5 cursor-default">
+                        <i class="fa-solid fa-bolt text-xat-lightGold text-[10px]"></i>
+                        <span>magia viva</span>
+                    </span>
+                    <span class="px-3.5 py-1.5 rounded-full bg-xat-scarlet/30 border border-xat-gold/30 text-xs text-amber-200/90 flex items-center gap-1.5 cursor-default">
+                        <i class="fa-solid fa-music text-xat-lightGold text-[10px]"></i>
+                        <span>daniel caesar & r&b</span>
+                    </span>
+                    <span class="px-3.5 py-1.5 rounded-full bg-xat-scarlet/30 border border-xat-gold/30 text-xs text-amber-200/90 flex items-center gap-1.5 cursor-default">
+                        <i class="fa-solid fa-shield-cat text-xat-lightGold text-[10px]"></i>
+                        <span>grifinória</span>
+                    </span>
+                </div>
+
+                <!-- Feitiço Mágico Interativo -->
+                <div class="mt-2 p-3.5 rounded-2xl bg-black/40 border border-xat-gold/25 flex items-center justify-between gap-3 shadow-inner">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-xat-scarlet to-xat-gold p-0.5 flex items-center justify-center">
+                            <div class="w-full h-full bg-xat-dark rounded-[10px] flex items-center justify-center text-xat-lightGold">
+                                <i class="fa-solid fa-wand-sparkles text-sm"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold text-amber-100">Lançar Faíscas Mágicas</p>
+                            <p class="text-[11px] text-amber-200/60 font-mono">"Lumos Maxima"</p>
+                        </div>
+                    </div>
+                    <button onclick="castSpell(event)" class="px-4 py-2 rounded-xl bg-gradient-to-r from-xat-scarlet to-xat-gold hover:brightness-125 text-xs font-cinzel font-bold text-amber-100 border border-xat-lightGold/30 transition-all shadow-md active:scale-95">
+                        Lumos ✨
+                    </button>
+                </div>
+
+            </section>
+
+            <!-- PLAYER DE MÚSICA - GET YOU DE DANIEL CAESAR (DIREITA) -->
+            <section class="lg:col-span-6 flex flex-col justify-center">
+                <div class="xat-card rounded-3xl p-5 sm:p-6 border border-xat-gold/30 shadow-2xl relative overflow-hidden">
+                    
+                    <!-- Topo do Player -->
+                    <div class="flex items-center justify-between pb-3.5 mb-4 border-b border-amber-200/10">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-headphones text-xat-lightGold text-xs"></i>
+                            <span class="text-[11px] font-cinzel font-bold tracking-widest text-amber-200/80 uppercase">NO MEU FONE</span>
+                        </div>
+                        <span id="trackIndex" class="text-xs font-mono text-amber-200/50">01 / 03</span>
+                    </div>
+
+                    <!-- Detalhes da Música e Capa -->
+                    <div class="flex items-center gap-4 my-1">
+                        <!-- Disco Vinil Giratório -->
+                        <div class="relative min-w-[65px] h-[65px] sm:min-w-[75px] sm:h-[75px]">
+                            <div id="albumDisk" class="w-full h-full rounded-full bg-neutral-900 border-2 border-xat-gold/60 p-1 shadow-lg relative flex items-center justify-center transition-transform duration-700">
+                                <img id="trackCover" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=300&auto=format&fit=crop" 
+                                     alt="Cover" class="w-full h-full object-cover rounded-full">
+                                <div class="absolute w-4 h-4 rounded-full bg-xat-dark border border-xat-gold flex items-center justify-center">
+                                    <div class="w-1.5 h-1.5 rounded-full bg-xat-gold"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Nome da Música -->
+                        <div class="flex-1 min-w-0">
+                            <h3 id="trackTitle" class="font-cinzel text-sm sm:text-base font-bold text-amber-100 truncate">
+                                Get You (feat. Kali Uchis)
+                            </h3>
+                            <p id="trackArtist" class="text-xs text-amber-200/60 truncate mt-0.5">
+                                Daniel Caesar
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Controles de Áudio -->
+                    <div class="mt-5 space-y-3">
+                        
+                        <!-- Barra de Progresso ajustável -->
+                        <div>
+                            <input type="range" id="progressBar" value="0" max="100" class="w-full cursor-pointer">
+                            <div class="flex justify-between text-[10px] font-mono text-amber-200/50 mt-1">
+                                <span id="currentTime">0:00</span>
+                                <span id="durationTime">4:38</span>
+                            </div>
+                        </div>
+
+                        <!-- Botões do Player -->
+                        <div class="flex items-center justify-between pt-1">
+                            <!-- Equalizador -->
+                            <div class="flex items-end gap-1 h-3.5 w-6" id="equalizer">
+                                <span class="w-1 bg-xat-gold/40 rounded-full h-2"></span>
+                                <span class="w-1 bg-xat-gold/40 rounded-full h-3.5"></span>
+                                <span class="w-1 bg-xat-gold/40 rounded-full h-1"></span>
+                                <span class="w-1 bg-xat-gold/40 rounded-full h-2.5"></span>
+                            </div>
+
+                            <!-- Botões de Troca/Play -->
+                            <div class="flex items-center gap-4">
+                                <button onclick="prevTrack()" class="text-amber-200/70 hover:text-xat-lightGold text-base transition-colors">
+                                    <i class="fa-solid fa-backward-step"></i>
+                                </button>
+                                
+                                <button id="playPauseBtn" onclick="togglePlay()" class="w-11 h-11 rounded-full bg-gradient-to-tr from-xat-scarlet to-xat-gold text-amber-100 flex items-center justify-center text-base shadow-lg hover:scale-105 transition-transform border border-xat-lightGold/40">
+                                    <i class="fa-solid fa-play ml-0.5" id="playIcon"></i>
+                                </button>
+                                
+                                <button onclick="nextTrack()" class="text-amber-200/70 hover:text-xat-lightGold text-base transition-colors">
+                                    <i class="fa-solid fa-forward-step"></i>
+                                </button>
+                            </div>
+
+                            <!-- Volume/Mute -->
+                            <button onclick="toggleMute()" id="muteBtn" class="text-amber-200/70 hover:text-xat-lightGold text-xs transition-colors">
+                                <i class="fa-solid fa-volume-high"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Playlist Expansível -->
+                    <div class="mt-5 pt-3 border-t border-amber-200/10">
+                        <div class="flex items-center justify-between text-xs text-amber-200/70 cursor-pointer select-none" onclick="togglePlaylistView()">
+                            <span class="font-cinzel font-semibold flex items-center gap-1.5">
+                                <i class="fa-solid fa-caret-right text-xat-gold transition-transform" id="playlistCaret"></i> Minha playlist
+                            </span>
+                            <span class="text-[10px] font-mono opacity-60">3 faixas</span>
+                        </div>
+
+                        <div id="playlistContainer" class="mt-2 space-y-1 hidden max-h-32 overflow-y-auto pr-1">
+                            <!-- Inserido via JS -->
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+        </div>
+
+        <!-- RODAPÉ DO XAT.ME -->
+        <footer class="px-6 py-3 border-t border-xat-gold/15 bg-black/50 text-center text-[11px] text-amber-200/40 font-poppins flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span>&copy; xat.me • Sih's Space</span>
+            <span class="font-cinzel text-xat-gold/70">"Malfeito Feito!" 🐾</span>
+        </footer>
+
+    </main>
+
+    <!-- Elemento Audio Nátivo -->
+    <audio id="audioPlayer" preload="metadata"></audio>
+
+    <script>
+        /* ==========================================================================
+           1. PLAYLIST & CONTROLADOR DE ÁUDIO
+           ========================================================================== */
+        const playlist = [
+            {
+                title: "Get You (feat. Kali Uchis)",
+                artist: "Daniel Caesar",
+                cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=300&auto=format&fit=crop",
+                // Fonte de áudio direta e estável
+                url: "https://ia800902.us.archive.org/2/items/tvtunes_28253/Harry%20Potter.mp3"
+            },
+            {
+                title: "See You Again",
+                artist: "Kali Uchis (feat. Tyler, The Creator)",
+                cover: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=300&auto=format&fit=crop",
+                url: "https://ia800301.us.archive.org/28/items/RelajacionAudio/Ambient.mp3"
+            },
+            {
+                title: "Not You Too",
+                artist: "Drake (feat. Chris Brown)",
+                cover: "https://images.unsplash.com/photo-1507838153414-b4b713384a76?q=80&w=300&auto=format&fit=crop",
+                url: "https://upload.wikimedia.org/wikipedia/commons/4/40/Tchaikovsky_-_Nutcracker_No._14a_Pas_de_Deux.ogg"
+            }
+        ];
+
+        let currentTrackIndex = 0;
+        const audio = document.getElementById('audioPlayer');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const playIcon = document.getElementById('playIcon');
+        const progressBar = document.getElementById('progressBar');
+        const currentTimeEl = document.getElementById('currentTime');
+        const durationTimeEl = document.getElementById('durationTime');
+        const albumDisk = document.getElementById('albumDisk');
+        const trackTitle = document.getElementById('trackTitle');
+        const trackArtist = document.getElementById('trackArtist');
+        const trackCover = document.getElementById('trackCover');
+        const trackIndex = document.getElementById('trackIndex');
+        const equalizer = document.getElementById('equalizer');
+
+        function loadTrack(index) {
+            currentTrackIndex = index;
+            const track = playlist[index];
+            audio.src = track.url;
+            audio.load(); // Força o recarregamento do áudio limpo
+            trackTitle.textContent = track.title;
+            trackArtist.textContent = track.artist;
+            trackCover.src = track.cover;
+            trackIndex.textContent = `0${index + 1} / 0${playlist.length}`;
+            renderPlaylist();
+        }
+
+        // Tratamento de Erros para URLs de Áudio
+        audio.addEventListener('error', (e) => {
+            console.warn("Erro ao carregar fonte de áudio. Tentando próxima faixa...", e);
+            setTimeout(() => {
+                nextTrack();
+            }, 1000);
+        });
+
+        function togglePlay() {
+            if (audio.paused) {
+                audio.play().then(() => {
+                    updatePlayState(true);
+                    hideUnlockTip();
+                }).catch((err) => {
+                    console.log("Aguardando interação do usuário para reproduzir áudio.");
+                });
+            } else {
+                audio.pause();
+                updatePlayState(false);
+            }
+        }
+
+        function updatePlayState(isPlaying) {
+            if (isPlaying) {
+                playIcon.className = 'fa-solid fa-pause';
+                albumDisk.classList.add('animate-spin');
+                albumDisk.style.animationDuration = '8s';
+                animateEqualizer(true);
+            } else {
+                playIcon.className = 'fa-solid fa-play ml-0.5';
+                albumDisk.classList.remove('animate-spin');
+                animateEqualizer(false);
+            }
+        }
+
+        function animateEqualizer(enable) {
+            const bars = equalizer.querySelectorAll('span');
+            bars.forEach(bar => {
+                if (enable) bar.classList.add('animate-pulse');
+                else bar.classList.remove('animate-pulse');
+            });
+        }
+
+        function nextTrack() {
+            currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+            loadTrack(currentTrackIndex);
+            audio.play();
+            updatePlayState(true);
+        }
+
+        function prevTrack() {
+            currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
+            loadTrack(currentTrackIndex);
+            audio.play();
+            updatePlayState(true);
+        }
+
+        audio.addEventListener('timeupdate', () => {
+            if (audio.duration) {
+                const progressPercent = (audio.currentTime / audio.duration) * 100;
+                progressBar.value = progressPercent;
+                currentTimeEl.textContent = formatTime(audio.currentTime);
+                durationTimeEl.textContent = formatTime(audio.duration);
+            }
+        });
+
+        progressBar.addEventListener('input', () => {
+            if (audio.duration) {
+                audio.currentTime = (progressBar.value / 100) * audio.duration;
+            }
+        });
+
+        audio.addEventListener('ended', nextTrack);
+
+        function formatTime(seconds) {
+            const min = Math.floor(seconds / 60);
+            const sec = Math.floor(seconds % 60);
+            return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+        }
+
+        function toggleMute() {
+            audio.muted = !audio.muted;
+            const muteBtn = document.getElementById('muteBtn');
+            muteBtn.innerHTML = audio.muted ? 
+                '<i class="fa-solid fa-volume-xmark text-red-400"></i>' : 
+                '<i class="fa-solid fa-volume-high"></i>';
+        }
+
+        function renderPlaylist() {
+            const container = document.getElementById('playlistContainer');
+            container.innerHTML = '';
+            playlist.forEach((track, i) => {
+                const item = document.createElement('div');
+                item.className = `flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer transition-all ${
+                    i === currentTrackIndex 
+                        ? 'bg-xat-scarlet/50 border border-xat-gold/40 text-amber-100 font-semibold' 
+                        : 'hover:bg-white/5 text-amber-200/70'
+                }`;
+                item.onclick = () => {
+                    loadTrack(i);
+                    audio.play();
+                    updatePlayState(true);
+                };
+                item.innerHTML = `
+                    <div class="flex items-center gap-2 truncate">
+                        <i class="fa-solid ${i === currentTrackIndex ? 'fa-compact-disc text-xat-lightGold animate-spin' : 'fa-music text-amber-200/40'} text-xs"></i>
+                        <span class="truncate">${track.title}</span>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function togglePlaylistView() {
+            const container = document.getElementById('playlistContainer');
+            const caret = document.getElementById('playlistCaret');
+            container.classList.toggle('hidden');
+            caret.classList.toggle('rotate-90');
+        }
+
+        /* ==========================================================================
+           2. SUTIL DESBLOQUEIO DE ÁUDIO NO PRIMEIRO CLIQUE
+           ========================================================================== */
+        const unlockTip = document.getElementById('audioUnlockTip');
+
+        function hideUnlockTip() {
+            if (unlockTip) {
+                unlockTip.classList.add('opacity-0', '-translate-y-4');
+                setTimeout(() => unlockTip.remove(), 700);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            loadTrack(0);
+            
+            // Tentativa suave de autoplay
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    updatePlayState(true);
+                    hideUnlockTip();
+                }).catch(() => {
+                    // Se o browser restringir o som, o clique sutil em qualquer lugar ativa
+                    const unlockAudioOnInteraction = () => {
+                        audio.play().then(() => {
+                            updatePlayState(true);
+                            hideUnlockTip();
+                        }).catch(() => {});
+                        window.removeEventListener('click', unlockAudioOnInteraction);
+                    };
+                    window.addEventListener('click', unlockAudioOnInteraction);
+                });
+            }
+        });
+
+        /* ==========================================================================
+           3. CANVAS COM PARTICULAS & RASTRO MÁGICO DE VARINHA
+           ========================================================================== */
+        const canvas = document.getElementById('magicCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        const particles = [];
+        const magicTrail = [];
+
+        class BackgroundSparkle {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.size = Math.random() * 2 + 0.5;
+                this.alpha = Math.random() * 0.8 + 0.2;
+                this.speedAlpha = Math.random() * 0.01 + 0.005;
+                this.color = Math.random() > 0.3 ? '#EEBA30' : '#ffffff';
+            }
+            update() {
+                this.alpha += this.speedAlpha;
+                if (this.alpha > 1 || this.alpha < 0.2) this.speedAlpha = -this.speedAlpha;
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class WandParticle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 3.5 + 1;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2 - 1;
+                this.life = 1.0;
+                this.decay = Math.random() * 0.03 + 0.015;
+                this.color = color || (Math.random() > 0.4 ? '#EEBA30' : '#ffd700');
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= this.decay;
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(this.life, 0);
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = '#D3A625';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        for (let i = 0; i < 60; i++) {
+            particles.push(new BackgroundSparkle());
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            for (let i = 0; i < 2; i++) {
+                magicTrail.push(new WandParticle(e.clientX, e.clientY));
+            }
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                const touch = e.touches[0];
+                for (let i = 0; i < 2; i++) {
+                    magicTrail.push(new WandParticle(touch.clientX, touch.clientY));
+                }
+            }
+        });
+
+        function createSparklerBurst(x, y, count = 30) {
+            const colors = ['#EEBA30', '#D3A625', '#ffffff', '#740001'];
+            for (let i = 0; i < count; i++) {
+                const p = new WandParticle(x, y, colors[Math.floor(Math.random() * colors.length)]);
+                p.vx = (Math.random() - 0.5) * 7;
+                p.vy = (Math.random() - 0.5) * 7;
+                p.size = Math.random() * 4 + 2;
+                magicTrail.push(p);
+            }
+        }
+
+        function animateCanvas() {
+            ctx.clearRect(0, 0, width, height);
+
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            for (let i = magicTrail.length - 1; i >= 0; i--) {
+                const p = magicTrail[i];
+                p.update();
+                p.draw();
+                if (p.life <= 0) magicTrail.splice(i, 1);
+            }
+
+            requestAnimationFrame(animateCanvas);
+        }
+
+        animateCanvas();
+
+        /* ==========================================================================
+           4. AÇÕES INTERATIVAS
+           ========================================================================== */
+        function copyID() {
+            const idText = "Sih#1007";
+            navigator.clipboard.writeText(idText).then(() => {
+                const msg = document.getElementById('copyMsg');
+                msg.classList.remove('opacity-0');
+                setTimeout(() => msg.classList.add('opacity-0'), 2000);
+            });
+        }
+
+        function castSpell(evt) {
+            const rect = evt.target.getBoundingClientRect();
+            createSparklerBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, 40);
+        }
+    </script>
+</body>
+</html>
